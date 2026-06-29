@@ -23,7 +23,6 @@ const defaultAgents = [
     ["Jett", "Duelist"],
     ["KAY/O", "Initiator"],
     ["Killjoy", "Sentinel"],
-    ["Miks", "Controller"],
     ["Neon", "Duelist"],
     ["Omen", "Controller"],
     ["Phoenix", "Duelist"],
@@ -40,19 +39,18 @@ const defaultAgents = [
 ];
 
 const defaultMaps = [
-    ["Abyss", "No notes yet"],
-    ["Ascent", "No notes yet"],
-    ["Bind", "No notes yet"],
-    ["Breeze", "No notes yet"],
-    ["Corrode", "No notes yet"],
-    ["Fracture", "No notes yet"],
-    ["Haven", "No notes yet"],
-    ["Icebox", "No notes yet"],
-    ["Lotus", "No notes yet"],
-    ["Pearl", "No notes yet"],
-    ["Split", "No notes yet"],
-    ["Sunset", "No notes yet"],
-    ["Summit", "No notes yet"]
+    ["Abyss", "Default map. Add notes, comps, and callouts for your team."],
+    ["Ascent", "Default map. Add notes, comps, and callouts for your team."],
+    ["Bind", "Default map. Add notes, comps, and callouts for your team."],
+    ["Breeze", "Default map. Add notes, comps, and callouts for your team."],
+    ["Corrode", "Default map. Add notes, comps, and callouts for your team."],
+    ["Fracture", "Default map. Add notes, comps, and callouts for your team."],
+    ["Haven", "Default map. Add notes, comps, and callouts for your team."],
+    ["Icebox", "Default map. Add notes, comps, and callouts for your team."],
+    ["Lotus", "Default map. Add notes, comps, and callouts for your team."],
+    ["Pearl", "Default map. Add notes, comps, and callouts for your team."],
+    ["Split", "Default map. Add notes, comps, and callouts for your team."],
+    ["Sunset", "Default map. Add notes, comps, and callouts for your team."]
 ];
 
 app.use(express.json({ limit: "2mb" }));

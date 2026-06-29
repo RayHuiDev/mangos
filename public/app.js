@@ -9,6 +9,8 @@ const state = {
 };
 
 const roles = ["Controller", "Sentinel", "Initiator", "Duelist"];
+const preferenceDrafts = new Map();
+let activePreferenceAgentId = null;
 
 const els = {
     authScreen: document.getElementById("authScreen"),
@@ -80,6 +82,7 @@ function bindEvents() {
     els.saveRosterBtn.addEventListener("click", saveRosterStatus);
     els.saveAgentsBtn.addEventListener("click", saveSelectedAgents);
     els.savePreferredMapsBtn.addEventListener("click", savePreferredMaps);
+    els.preferenceAgent.addEventListener("change", changePreferenceAgent);
     els.preferenceForm.addEventListener("submit", savePreference);
     els.mapForm.addEventListener("submit", saveMap);
     els.cancelMapBtn.addEventListener("click", resetMapForm);
@@ -200,12 +203,24 @@ function renderRosterStatus() {
 }
 
 function renderSelects() {
+    if (activePreferenceAgentId) savePreferenceDraft(activePreferenceAgentId);
+
     const mapOnlyOptions = state.maps.map(map => `<option value="${map.id}">${escapeHtml(map.name)}</option>`).join("");
     const agentOptions = state.agents.map(agent => `<option value="${agent.id}">${escapeHtml(agent.name)} · ${escapeHtml(agent.role)}</option>`).join("");
+    const previousAgentId = activePreferenceAgentId && state.agents.some(agent => Number(agent.id) === Number(activePreferenceAgentId)) ? activePreferenceAgentId : Number(state.agents[0]?.id) || null;
 
     els.teamMap.innerHTML = mapOnlyOptions;
     els.preferenceAgent.innerHTML = agentOptions;
+
+    if (previousAgentId) {
+        els.preferenceAgent.value = String(previousAgentId);
+        activePreferenceAgentId = previousAgentId;
+    } else {
+        activePreferenceAgentId = null;
+    }
+
     renderPreferenceMapChecks();
+    restorePreferenceFormForAgent(activePreferenceAgentId);
 }
 
 function renderAgentPicker() {
@@ -294,21 +309,119 @@ function renderPreferenceMapChecks() {
     });
 }
 
+function changePreferenceAgent() {
+    savePreferenceDraft(activePreferenceAgentId);
+    activePreferenceAgentId = Number(els.preferenceAgent.value) || null;
+    restorePreferenceFormForAgent(activePreferenceAgentId);
+}
+
+function savePreferenceDraft(agentId) {
+    if (!agentId || !els.preferenceMaps) return;
+
+    preferenceDrafts.set(Number(agentId), {
+        mapIds: Array.from(els.preferenceMaps.querySelectorAll(".preference-map-checkbox:checked")).map(input => Number(input.value)),
+        rating: Number(els.preferenceRating.value) || 3,
+        notes: els.preferenceNotes.value || ""
+    });
+}
+
+function restorePreferenceFormForAgent(agentId) {
+    if (!agentId || !els.preferenceMaps) return;
+
+    const draft = preferenceDrafts.get(Number(agentId));
+    const saved = getSavedPreferenceFormForAgent(agentId);
+    const formData = draft || saved;
+
+    els.preferenceRating.value = String(formData.rating || 3);
+    els.preferenceNotes.value = formData.notes || "";
+    setPreferenceMapChecks(formData.mapIds || []);
+}
+
+function getSavedPreferenceFormForAgent(agentId) {
+    const prefs = state.myPreferences.filter(pref => Number(pref.agent_id) === Number(agentId));
+    const mapPrefs = prefs.filter(pref => pref.map_id !== null && pref.map_id !== undefined);
+    const ratingSource = mapPrefs[0] || prefs[0];
+    const notes = [...new Set(prefs.map(pref => pref.notes || "").filter(Boolean))];
+
+    return {
+        mapIds: mapPrefs.map(pref => Number(pref.map_id)),
+        rating: ratingSource ? Number(ratingSource.preference) : 3,
+        notes: notes.length === 1 ? notes[0] : ""
+    };
+}
+
+function setPreferenceMapChecks(mapIds) {
+    const selectedIds = new Set((mapIds || []).map(id => Number(id)));
+
+    els.preferenceMaps.querySelectorAll(".preference-map-checkbox").forEach(input => {
+        input.checked = selectedIds.has(Number(input.value));
+        input.closest(".mini-check").classList.toggle("selected", input.checked);
+    });
+}
+
+function groupPreferencesByAgent(preferences) {
+    const groups = new Map();
+
+    preferences.forEach(pref => {
+        const key = Number(pref.agent_id);
+
+        if (!groups.has(key)) {
+            groups.set(key, {
+                agent_id: pref.agent_id,
+                agent_name: pref.agent_name,
+                agent_role: pref.agent_role,
+                items: []
+            });
+        }
+
+        groups.get(key).items.push(pref);
+    });
+
+    return Array.from(groups.values()).sort((a, b) => a.agent_name.localeCompare(b.agent_name)).map(group => {
+        group.items.sort((a, b) => String(a.map_name || "All Maps").localeCompare(String(b.map_name || "All Maps")) || Number(b.preference) - Number(a.preference));
+        return group;
+    });
+}
+
+function renderPreferenceGroupSummary(preferences) {
+    const groups = groupPreferencesByAgent(preferences);
+
+    if (!groups.length) return "";
+
+    return groups.map(group => {
+        const itemText = group.items.map(pref => `${escapeHtml(pref.map_name || "All Maps")} - ${Number(pref.preference)}/5`).join(", ");
+        const noteLines = group.items.filter(pref => pref.notes).map(pref => `${escapeHtml(pref.map_name || "All Maps")}: ${escapeHtml(pref.notes)}`);
+        const notesHtml = noteLines.length ? `<div class="item-sub grouped-notes">${noteLines.join("<br>")}</div>` : "";
+        return `<div class="preference-summary-line"><strong>${escapeHtml(group.agent_name)}:</strong> ${itemText}</div>${notesHtml}`;
+    }).join("");
+}
+
+function renderPreferenceDeleteButtons(preferences) {
+    return preferences.map(pref => `
+        <button class="danger" type="button" data-delete-pref="${pref.id}" data-delete-pref-agent="${pref.agent_id}">
+            Delete ${escapeHtml(pref.agent_name)} ${escapeHtml(pref.map_name || "All Maps")}
+        </button>
+    `).join("");
+}
+
 function renderPreferences() {
     if (!state.myPreferences.length) {
         els.preferencesList.innerHTML = `<div class="empty">No preferences saved yet.</div>`;
         return;
     }
 
-    els.preferencesList.innerHTML = state.myPreferences.map(pref => `
+    const groups = groupPreferencesByAgent(state.myPreferences);
+
+    els.preferencesList.innerHTML = groups.map(group => `
         <div class="item">
             <div class="item-head">
                 <div>
-                    <div class="item-title">${escapeHtml(pref.agent_name)} · ${escapeHtml(pref.agent_role)}</div>
-                    <div class="item-sub">${escapeHtml(pref.map_name || "All Maps")} · Preference ${pref.preference}/5${pref.notes ? `\n${escapeHtml(pref.notes)}` : ""}</div>
+                    <div class="item-title">${escapeHtml(group.agent_name)} · ${escapeHtml(group.agent_role)}</div>
+                    <div class="preference-summary-line"><strong>${escapeHtml(group.agent_name)}:</strong> ${group.items.map(pref => `${escapeHtml(pref.map_name || "All Maps")} - ${Number(pref.preference)}/5`).join(", ")}</div>
+                    ${group.items.filter(pref => pref.notes).length ? `<div class="item-sub grouped-notes">${group.items.filter(pref => pref.notes).map(pref => `${escapeHtml(pref.map_name || "All Maps")}: ${escapeHtml(pref.notes)}`).join("<br>")}</div>` : ""}
                 </div>
-                <div class="item-actions">
-                    <button class="danger" type="button" data-delete-pref="${pref.id}">Delete</button>
+                <div class="item-actions stacked-actions">
+                    ${renderPreferenceDeleteButtons(group.items)}
                 </div>
             </div>
         </div>
@@ -358,7 +471,7 @@ function renderPlayers() {
     els.playersList.innerHTML = state.players.map(player => {
         const selectedAgents = player.selected_agents.length ? player.selected_agents.map(agent => `<span class="tag good">${escapeHtml(agent.name)} · ${escapeHtml(agent.role)}</span>`).join("") : `<span class="tag">No agents selected</span>`;
         const preferredMaps = player.preferred_maps.length ? player.preferred_maps.map(map => `<span class="tag warn">${escapeHtml(map.name)}</span>`).join("") : `<span class="tag">No preferred maps</span>`;
-        const preferences = player.preferences.length ? player.preferences.slice(0, 8).map(pref => `<div class="item-sub">${escapeHtml(pref.agent_name)} on ${escapeHtml(pref.map_name || "All Maps")} · ${pref.preference}/5${pref.notes ? ` — ${escapeHtml(pref.notes)}` : ""}</div>`).join("") : `<div class="item-sub">No agent notes yet.</div>`;
+        const preferences = player.preferences.length ? renderPreferenceGroupSummary(player.preferences) : `<div class="item-sub">No agent notes yet.</div>`;
         const roster = player.team_status === "sub" ? "Sub" : "Main Team";
         const captain = player.is_captain ? `<span class="tag captain">Captain</span>` : "";
 
@@ -422,19 +535,20 @@ async function savePreferredMaps() {
 
 async function savePreference(event) {
     event.preventDefault();
+    const agentId = Number(els.preferenceAgent.value);
     const mapIds = Array.from(els.preferenceMaps.querySelectorAll(".preference-map-checkbox:checked")).map(input => Number(input.value));
     const data = await api("/api/me/preferences", "POST", {
         map_ids: mapIds,
-        agent_id: Number(els.preferenceAgent.value),
+        agent_id: agentId,
         preference: Number(els.preferenceRating.value),
         notes: els.preferenceNotes.value
     });
     state.myPreferences = data.myPreferences;
     state.players = data.players;
-    els.preferenceNotes.value = "";
-    els.preferenceMaps.querySelectorAll(".preference-map-checkbox").forEach(input => {
-        input.checked = false;
-        input.closest(".mini-check").classList.remove("selected");
+    preferenceDrafts.set(agentId, {
+        mapIds,
+        rating: Number(els.preferenceRating.value) || 3,
+        notes: els.preferenceNotes.value || ""
     });
     renderPreferences();
     renderPlayers();
@@ -443,6 +557,7 @@ async function savePreference(event) {
 }
 
 async function deletePreference(id) {
+    const pref = state.myPreferences.find(item => Number(item.id) === Number(id));
     const ok = await askConfirm({
         title: "Delete this preference?",
         message: "This removes the saved agent preference and note from your account. It cannot be undone.",
@@ -454,6 +569,12 @@ async function deletePreference(id) {
     const data = await api(`/api/me/preferences/${id}`, "DELETE");
     state.myPreferences = data.myPreferences;
     state.players = data.players;
+
+    if (pref) {
+        preferenceDrafts.delete(Number(pref.agent_id));
+        if (Number(activePreferenceAgentId) === Number(pref.agent_id)) restorePreferenceFormForAgent(activePreferenceAgentId);
+    }
+
     renderPreferences();
     renderPlayers();
     generateTeamPlan();

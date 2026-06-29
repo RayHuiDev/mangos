@@ -681,3 +681,30 @@ textarea:focus {
         min-width: 0;
     }
 }
+
+.preference-summary-line {
+    margin-top: 7px;
+    color: white;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.grouped-notes {
+    margin-top: 8px;
+}
+
+.stacked-actions {
+    min-width: 180px;
+    justify-content: flex-end;
+}
+
+.stacked-actions button {
+    width: 100%;
+    justify-content: center;
+}
+
+@media (max-width: 720px) {
+    .stacked-actions {
+        width: 100%;
+    }
+}
