@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mango Tree Valorant Planner</title>
+    <meta name="description" content="Mango Tree Valorant team planner">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main id="authScreen" class="auth-screen hidden">
+        <section class="auth-card">
+            <div class="brand">
+                <div class="brand-mark">MT</div>
+                <div>
+                    <h1>Mango Tree Planner</h1>
+                    <p>Valorant agent pools, map preferences, notes, and team comps.</p>
+                </div>
+            </div>
+            <div class="auth-tabs">
+                <button id="loginTab" class="active" type="button">Login</button>
+                <button id="registerTab" type="button">Register</button>
+            </div>
+            <form id="loginForm" class="auth-form">
+                <label>Username<input id="loginUsername" type="text" autocomplete="username" required></label>
+                <label>Password<input id="loginPassword" type="password" autocomplete="current-password" required></label>
+                <button type="submit">Login</button>
+            </form>
+            <form id="registerForm" class="auth-form hidden">
+                <label>Display Name<input id="registerDisplayName" type="text" autocomplete="name" required></label>
+                <label>Username<input id="registerUsername" type="text" autocomplete="username" required></label>
+                <label>Password<input id="registerPassword" type="password" autocomplete="new-password" required></label>
+                <button type="submit">Create Account</button>
+            </form>
+            <div id="authError" class="message error hidden"></div>
+        </section>
+    </main>
+
+    <main id="appScreen" class="app hidden">
+        <header class="topbar">
+            <div>
+                <h1>Mango Tree Valorant Planner</h1>
+                <p id="userLine">Loading...</p>
+            </div>
+            <button id="logoutBtn" type="button" class="ghost">Logout</button>
+        </header>
+
+        <section class="panel roster-panel">
+            <div class="panel-title wrap">
+                <div>
+                    <h2>My Roster Status</h2>
+                    <p>Choose whether you are on the main team or a sub, and mark yourself as captain if needed.</p>
+                </div>
+                <div class="roster-controls">
+                    <label>Roster
+                        <select id="teamStatus">
+                            <option value="main">Main Team</option>
+                            <option value="sub">Sub</option>
+                        </select>
+                    </label>
+                    <label class="captain-check">
+                        <span>Captain</span>
+                        <input id="captainCheck" type="checkbox">
+                    </label>
+                    <button id="saveRosterBtn" type="button">Save Status</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="grid two main-grid">
+            <div class="panel wide">
+                <div class="panel-title wrap">
+                    <div>
+                        <h2>My Agent Pool</h2>
+                        <p>Select every agent you are willing to play. Each box shows the agent and class.</p>
+                    </div>
+                    <div class="inline-controls">
+                        <div id="selectedAgentBadge" class="badge">0 agents selected</div>
+                        <button id="saveAgentsBtn" type="button">Save Agents</button>
+                    </div>
+                </div>
+                <div id="agentPicker" class="agent-picker"></div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title wrap">
+                    <div>
+                        <h2>My Preferred Maps</h2>
+                        <p>Select multiple maps you prefer playing.</p>
+                    </div>
+                    <button id="savePreferredMapsBtn" type="button">Save Maps</button>
+                </div>
+                <div id="preferredMapPicker" class="map-picker"></div>
+            </div>
+        </section>
+
+        <section class="grid two">
+            <div class="panel">
+                <div class="panel-title">
+                    <div>
+                        <h2>Agent Preferences</h2>
+                        <p>Save ratings and notes globally or for multiple maps at once.</p>
+                    </div>
+                </div>
+                <form id="preferenceForm" class="form-grid">
+                    <label>Agent<select id="preferenceAgent"></select></label>
+                    <label>Preference<select id="preferenceRating"><option value="5">5 - Main pick</option><option value="4">4 - Strong pick</option><option value="3" selected>3 - Comfortable</option><option value="2">2 - Backup</option><option value="1">1 - Avoid</option></select></label>
+                    <div class="full">
+                        <div class="field-label">Maps</div>
+                        <div id="preferenceMaps" class="mini-check-grid"></div>
+                        <div class="hint">Leave every map unchecked to save this preference for all maps.</div>
+                    </div>
+                    <label class="full">Notes<textarea id="preferenceNotes" placeholder="Lineups, comfort level, setups, or anything your team needs to know"></textarea></label>
+                    <button type="submit">Save Preference</button>
+                </form>
+                <div id="preferencesList" class="stack scroll-list"></div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">
+                    <div>
+                        <h2>Maps & Notes</h2>
+                        <p>Add maps and shared map notes for the team.</p>
+                    </div>
+                </div>
+                <form id="mapForm" class="form-grid">
+                    <input id="mapId" type="hidden">
+                    <label>Map Name<input id="mapName" type="text" placeholder="Ascent" required></label>
+                    <label class="full">Map Notes<textarea id="mapNotes" placeholder="Default comp, site hits, defensive setup, bans, callouts"></textarea></label>
+                    <button id="saveMapBtn" type="submit">Save Map Note</button>
+                    <button id="cancelMapBtn" type="button" class="secondary hidden">Cancel Edit</button>
+                </form>
+                <div id="mapsList" class="stack scroll-list"></div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-title wrap">
+                <div>
+                    <h2>Team Comp Generator</h2>
+                    <p>Builds a comp from selected agent pools, preferred maps, ratings, notes, and role balance.</p>
+                </div>
+                <div class="inline-controls">
+                    <select id="teamMap"></select>
+                    <button id="generateBtn" type="button">Generate Comp</button>
+                </div>
+            </div>
+            <div id="teamPlan" class="team-plan"></div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-title">
+                <div>
+                    <h2>All Players</h2>
+                    <p>View every account, their selected agent pool, preferred maps, and notes.</p>
+                </div>
+            </div>
+            <div id="playersList" class="players-list"></div>
+        </section>
+    </main>
+
+    <div id="confirmOverlay" class="modal-overlay hidden">
+        <div class="modal-card">
+            <h3 id="confirmTitle">Are you sure?</h3>
+            <p id="confirmMessage">This action cannot be undone.</p>
+            <div class="modal-actions">
+                <button id="confirmCancel" type="button" class="secondary">Cancel</button>
+                <button id="confirmAccept" type="button" class="danger">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+    <script src="app.js"></script>
+</body>
+</html>
